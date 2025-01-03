@@ -1,4 +1,0 @@
-[wokwi]
-version = 1
-firmware = '../.pio/buildd/iecimilaatmega328/firmware.hex'
-elf = '../.pio/build/diecimilaatmega328/firmware.elf'

@@ -1,16 +1,24 @@
 #include <Arduino.h>
 #include <avr/io.h>
+using uLong = uLong;
+
+enum TimeType{
+    Target,
+    Display
+};
 
 class PhysicalClock {
 private:
     /// @brief The amount of Seconds a entiry day has
-    const int dayLength = 24*60*60;
+    const uLong dayLength = 24UL * 60 * 60;
 
-    int realPosition;
-    int targetPostion;
-    const int maxPosition = 720;
+    uLong _displayPosition;
+    uLong _targetPostion;
+    uLong _minTickDelayInMs;
+    uLong _lastTick; 
+    uLong _maxPosition;
     /// @brief Die Maximale Zeit die in Sekunden angegeben werden kann, z.B. 24h, oder 12h
-    int maxTime = 24*60*60;
+    uLong maxTime = 24UL * 60 * 60;
     /// @brief Die Aktuelle Richtiung die vom Motortreiber genutzt wird um die Uhr ticken zu lassen
     bool direction;
     // Gpio pin für die erste richtung des Motortreibers
@@ -20,63 +28,74 @@ private:
 
 public:
     // Konstruktor
-    PhysicalClock(int realPos, uint8_t diractionPinA, uint8_t diractionPinB, bool startDirection = true) {
-        realPosition = realPos;
+    PhysicalClock(uLong displayPos, uint8_t diractionPinA, uint8_t diractionPinB, bool startDirection = true, uLong minTickDelayMs = 800, uLong maxPos = 720) {
+        _displayPosition = displayPos;
         diractionA = diractionPinA;
         diractionB = diractionPinB;
         direction = startDirection;
+        _minTickDelayInMs = minTickDelayMs;
+        _maxPosition = maxPos;
+
         pinMode(diractionA, OUTPUT);
         pinMode(diractionB, OUTPUT);
     }
 
     /// @brief Setzt die auf dem Ziffernblatt Angezeigte Zeit über aktuellen die Aktuelle Zeigerposition
     /// @param pos 
-    void setRealPosition(int pos) {
-        realPosition = pos % maxPosition;
+    void setDisplayPosition(uLong pos) {
+        _displayPosition = pos % _maxPosition;
     }
 
     /// @brief Setzt die auf dem Ziffernblatt Angezeigte Zeit über die Sekunden seit begin des Tages
     /// @param secSineDayBegin 
-    void setDisplayTime(int secSinceDayBegin){
+    void setDisplayTimeSec(uLong secSinceDayBegin){
         secSinceDayBegin %= dayLength;
-        setRealPosition(secSinceDayBegin / getTickDuration());
+        setDisplayPosition(secSinceDayBegin / getTickDuration());
     }
-
+    
     /// @brief Setzt die Anzugzeigende Zeit über die gewünschte Zeigerposition
     /// @param pos 
-    void setTargetPosition(int pos){
-        targetPostion = pos % maxPosition;
+    void setTargetPosition(uLong pos){
+        _targetPostion = pos % _maxPosition;
     }
-
+    
     /// @brief Setzt die Anzuzeigende Zeit über die Sekunden seit begin des Tages
     /// @param secSinceDayBegin 
-    void setTargetTime(int secSinceDayBegin){
+    void setTargetTimeSec(uLong secSinceDayBegin){
         secSinceDayBegin %= dayLength;
         setTargetPosition(secSinceDayBegin / getTickDuration());
     }
 
     /// @brief Setzt die maximale Zeit die die Uhr anzeigen kann, z.B. 12h oder 24h
     /// @param maxTimeSec 
-    void setMaxTime(int maxTimeSec){
+    void setMaxTime(uLong maxTimeSec){
         maxTime = maxTimeSec;
     }
 
     /// @brief Fragt die aktuelle Zeigerposition ab
     /// @return 
-    int getRealPosition() const {
-        return realPosition;
+    uLong getRealPosition() const {
+        return _displayPosition;
+    }
+
+    uLong getDisplayTimeSec() const {
+        return _displayPosition * getTickDuration();
+    }
+
+    uLong getTargetTimeSec() const {
+        return _targetPostion * getTickDuration();
     }
 
     /// @brief Fragt die gewünschte Zeigerposition ab
     /// @return 
-    int getTargetPosition() const {
-        return targetPostion;
+    uLong getTargetPosition() const {
+        return _targetPostion;
     }
 
     /// @brief Berechnet die Länge eines Ticks in Sekunden
     /// @return 
-    int getTickDuration() const {
-        return maxTime / maxPosition;
+    uLong getTickDuration() const {
+        return maxTime / _maxPosition;
     }
 
     void update(){
@@ -93,9 +112,20 @@ public:
         direction = !direction;
     }
 
-    String formatTimeFromTimestamp(int timestamp) {
-        int h = timestamp / 60; // Stunden berechnen
-        int m = timestamp % 60; // Minuten berechnen
+    String getTimeStr(TimeType type) {
+        uLong timestamp = 0;
+        switch (type){
+            case TimeType::Display:
+                timestamp = getDisplayTimeSec();
+                break;
+            case TimeType::Target:
+                timestamp = getTargetTimeSec();
+            default:
+                break;
+        };
+
+        uLong h = timestamp / 60 / 60; // Stunden berechnen
+        uLong m = timestamp % 3600 / 60; // Minuten berechnen
 
         String formattedTime = "";
 

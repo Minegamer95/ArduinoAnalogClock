@@ -1,0 +1,5 @@
+[wokwi]
+version = 1
+rfc2217ServerPort = 4000
+firmware = '../.pio/build/diecimilaatmega328/firmware.hex'
+elf = '../.pio/build/diecimilaatmega328/firmware.elf'
