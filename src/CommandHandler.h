@@ -12,6 +12,11 @@ public:
     void helpCommand(const String& command, const String& arg);
     void listen();
     static void printHeader(const String& cmd, bool end = false);
+    static bool isNumber(const String& str);
+    static int toNumber(const String& str, int fallback = 0);
+    static unsigned long extractTime(const String& str);
+    static int CountArgs(const String& str, char separator = ' ');
+    static String GetArg(const String& str, int index, char separator = ' ');
 
 private:
     struct Command {
