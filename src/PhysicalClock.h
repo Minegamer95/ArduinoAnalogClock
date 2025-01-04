@@ -134,6 +134,11 @@ public:
       return;
     else if (getDisplayPosition() == getTargetPosition())
       return;
+    // Wenn es mehr sinn mach den Zeiger zu lassen wo er ist sollte es auch so
+    // sein
+    else if (getForwardTickDiffSec() > getBackwardTickDiffSec() ||
+             getBackwardTickDiffSec() < 5 * 60)
+      return;
     else if (millis() - _lastTick < _minTickDelayInMs)
       return;
 
