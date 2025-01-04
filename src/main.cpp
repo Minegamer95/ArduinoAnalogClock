@@ -3,11 +3,20 @@
 #include "CommandHandler.h"
 
 void statusCmd(const String& cmd, const String& args);
+void setDisplayTimeCmd(const String& cmd, const String& args);
+void cmdTemplate(const String& cmd, const String& args);
+
 
 PhysicalClock clock = PhysicalClock(0, 10, 11);
 CommandHandler commandHandler;
 uLong currentTime = 0;
 uLong lastUpdate = 0;
+
+// Language Text
+const char* dispTime = "Display Time: ";
+const char* dispPos = "Display Tick: ";
+const char* targTime = "Target Time: ";
+const char* targPos = "Target Tick: ";
 
 void setup() {
   // Configure Timer 1 for CTC mode
@@ -31,6 +40,7 @@ void setup() {
     commandHandler.helpCommand(cmd, arg);
   }, "Displays the list of available commands.");
   commandHandler.addCommand("status", statusCmd, "Zeigt Status");
+  commandHandler.addCommand("setDispTime", setDisplayTimeCmd, "Setzt die Display Time, setDispTime <hh:mm>/<hh:mm:ss>");
 
   Serial.begin(9600);
 }
@@ -53,10 +63,40 @@ ISR(TIMER1_COMPA_vect){
 
 void statusCmd(const String& cmd, const String& args){
   CommandHandler::printHeader(cmd);
-  Serial.println("Display Time: " + clock.getTimeStr(TimeType::Display));
-  Serial.println("Display Tick: " + String(clock.getDisplayPosition()));
-  Serial.println("Target Time: " + clock.getTimeStr(TimeType::Target));
-  Serial.println("Target Tick: " + String(clock.getTargetPosition()));
+  Serial.println(dispTime + clock.getTimeStr(TimeType::Display));
+  Serial.println(dispPos + String(clock.getDisplayPosition()));
+  Serial.println(targTime + clock.getTimeStr(TimeType::Target));
+  Serial.println(targPos + String(clock.getTargetPosition()));
 
   CommandHandler::printHeader(cmd, true);
 };
+
+void setDisplayTimeCmd(const String& cmd, const String& args){
+  CommandHandler::printHeader(cmd);
+  Serial.print("Von ");
+  Serial.print(dispTime);
+  Serial.println(clock.getTimeStr(TimeType::Display));
+
+  Serial.print("Args: ");
+  Serial.print(args);
+  Serial.print(", Count: ");
+  Serial.print(CommandHandler::CountArgs(args, ':'));
+  Serial.print(", Hour: ");
+  Serial.print(CommandHandler::GetArg(args, 0, ':'));
+  Serial.print(", Min: ");
+  Serial.print(CommandHandler::GetArg(args, 1, ':'));
+
+  Serial.println();
+  clock.setDisplayTimeSec(CommandHandler::extractTime(args));
+
+  Serial.print("Zu ");
+  Serial.print(dispTime);
+  Serial.println(clock.getTimeStr(TimeType::Display));
+  CommandHandler::printHeader(cmd, true);
+};
+
+void cmdTemplate(const String& cmd, const String& args){
+  CommandHandler::printHeader(cmd);
+  CommandHandler::printHeader(cmd, true);
+};
+
