@@ -31,4 +31,5 @@
 *.out
 *.app
 .pio/
-.vscode/
+.vscode/*
+!.vscode/settings.json

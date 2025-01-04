@@ -1,0 +1,7 @@
+{
+  "editor.tabSize": 2,
+  "editor.renderWhitespace": "all",
+  "C_Cpp.vcFormat.newLine.beforeOpenBrace.function": "sameLine",
+  "editor.formatOnSave": true,
+  "editor.formatOnSaveMode": "modificationsIfAvailable"
+}
