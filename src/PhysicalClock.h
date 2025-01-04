@@ -114,9 +114,11 @@ public:
   }
 
   uLong getForwardTickDiffSec() {
-    return ((getForwardTickDiff() * 1000) *
-            (_minTickDelayInMs + _tickPinTurnOfDelay)) /
-           1000;
+    // Berechne die Gesamtzeit in Millisekunden
+    uLong totalDelayInMs =
+        getForwardTickDiff() * (_minTickDelayInMs + _tickPinTurnOfDelay);
+    // Teile die Gesamtzeit durch 1000, um die Zeit in Sekunden zu erhalten
+    return totalDelayInMs / 1000;
   }
 
   uLong getBackwardTickDiffSec() {
