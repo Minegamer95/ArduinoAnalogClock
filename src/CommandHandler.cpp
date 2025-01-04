@@ -2,11 +2,12 @@
 
 CommandHandler::CommandHandler() : commandCount(0) {}
 
-void CommandHandler::addCommand(const String& command, CommandFunction func, const String& description) {
+void CommandHandler::addCommand(const String& command, CommandFunction func, const String& description, bool displayHeader) {
     if (commandCount < 10) { // Überprüfen, ob Platz für einen neuen Befehl ist
         commands[commandCount].name = command;
         commands[commandCount].function = func;
         commands[commandCount].description = description;
+        commands[commandCount].displayHeaders = displayHeader;
         commandCount++;
     }
     else{
@@ -26,13 +27,19 @@ void CommandHandler::executeCommand(const String& command) {
     String commandName = (spaceIndex > 0) ? cmd.substring(0, spaceIndex) : cmd;
 
     for (int i = 0; i < commandCount; i++) {
-        if (commands[i].name.equalsIgnoreCase(commandName)) {
-            commands[i].function(commandName, arg); // Führe die zugehörige Funktion aus
+        Command cmd = commands[i];
+        if (cmd.name.equalsIgnoreCase(commandName)) {
+            if(cmd.displayHeaders)
+                printHeader(cmd.name);
+            commands[i].function(cmd.name, arg); // Führe die zugehörige Funktion aus
+            if(cmd.displayHeaders)
+                printHeader(cmd.name, true);
             return;
         }
     }
     printHeader(unknownCmd);
     Serial.println(commandName);
+    Serial.println("Type 'help' for a list off Commands");
     printHeader(unknownCmd, true);
 }
 
@@ -44,13 +51,11 @@ void CommandHandler::listen(){
 }
 
 void CommandHandler::helpCommand(const String& command, const String& arg) {
-    printHeader(command);
     for (int i = 0; i < commandCount; i++) {
         Serial.print(commands[i].name);
         Serial.print(": ");
         Serial.println(commands[i].description);
     }
-    printHeader(command);
 }
 
 void CommandHandler::printHeader(const String& cmd, bool end){

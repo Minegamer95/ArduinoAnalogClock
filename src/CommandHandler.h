@@ -7,7 +7,7 @@ class CommandHandler {
 public:
     using CommandFunction = void(*)(const String& cmd, const String& arg);
     CommandHandler();
-    void addCommand(const String& command, CommandFunction func, const String& description = "");
+    void addCommand(const String& command, CommandFunction func, const String& description = "", bool displayHeader = true);
     void executeCommand(const String& command);
     void helpCommand(const String& command, const String& arg);
     void listen();
@@ -22,6 +22,7 @@ private:
     struct Command {
         String name;
         String description;
+        bool displayHeaders;
         CommandFunction function;
     };
 
