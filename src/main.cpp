@@ -6,6 +6,8 @@ void statusCmd(const String &cmd, const String &args);
 void setDisplayTimeCmd(const String &cmd, const String &args);
 void setTargetTimeCmd(const String &cmd, const String &args);
 void togglePauseCmd(const String &cmd, const String &args);
+void tickDisplay(const String &cmd, const String &args);
+void tickDisplaySec(const String &cmd, const String &args);
 void cmdTemplate(const String &cmd, const String &args);
 
 PhysicalClock clock = PhysicalClock(0, 10, 11, true, 800, 720, true);
@@ -55,6 +57,12 @@ void setup() {
   commandHandler.addCommand(
       "setTargTime", setTargetTimeCmd,
       "Setzt die Target Time, setTargTime <hh:mm>/<hh:mm:ss>");
+  commandHandler.addCommand(
+      "tick", setTargetTimeCmd,
+      "Erhöht die Display Tick um die eingegebene Zahl, tick <int>");
+  commandHandler.addCommand("tickTime", setTargetTimeCmd,
+                            "Erhöht die Display Time um die gegebene Zeit, "
+                            "tickTime <hh:mm>/<hh:mm:ss>");
   commandHandler.addCommand("toggel", togglePauseCmd,
                             "Started oder Stop die Uhr");
 
@@ -123,6 +131,32 @@ void togglePauseCmd(const String &cmd, const String &args) {
   else
     Serial.println(pauseRunningTxt);
 };
+
+void tickDisplay(const String &cmd, const String &args) {
+  Serial.print(changeFromTxt);
+  Serial.print(dispPosTxt);
+  Serial.println(clock.getDisplayPosition());
+
+  uLong newPos = clock.getDisplayPosition() + CommandHandler::toNumber(args);
+  clock.setDisplayPosition(newPos);
+
+  Serial.print(changeToTxt);
+  Serial.print(dispPosTxt);
+  Serial.println(clock.getDisplayPosition());
+}
+
+void tickDisplaySec(const String &cmd, const String &args) {
+  Serial.print(changeFromTxt);
+  Serial.print(dispTimeTxt);
+  Serial.println(clock.getTimeStr(TimeType::Display));
+
+  clock.setDisplayTimeSec(CommandHandler::extractTime(args) +
+                          clock.getDisplayTimeSec());
+
+  Serial.print(changeToTxt);
+  Serial.print(dispTimeTxt);
+  Serial.println(clock.getTimeStr(TimeType::Display));
+}
 
 void cmdTemplate(const String &cmd, const String &args) {
   CommandHandler::printHeader(cmd);
