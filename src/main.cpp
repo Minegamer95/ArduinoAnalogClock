@@ -2,12 +2,14 @@
 #include "PhysicalClock.h"
 #include <Arduino.h>
 
+// Commands
 void statusCmd(const String &cmd, const String &args);
 void setDisplayTimeCmd(const String &cmd, const String &args);
 void setTargetTimeCmd(const String &cmd, const String &args);
 void togglePauseCmd(const String &cmd, const String &args);
 void tickDisplay(const String &cmd, const String &args);
 void tickDisplaySec(const String &cmd, const String &args);
+
 void cmdTemplate(const String &cmd, const String &args);
 
 PhysicalClock clock = PhysicalClock(0, 10, 11, true, 800, 720, true);
@@ -27,19 +29,11 @@ const char *pauseRunningTxt = "Running";
 const char *pauseStoppedTxt = "Stopped";
 
 void setup() {
-  // Configure Timer 1 for CTC mode
-  TCCR1A = 0; // Set entire TCCR1A register to 0
-  TCCR1B = 0; // Same for TCCR1B
-  TCCR1B |= (1 << WGM12);
-
-  // Set CS12, CS10 bits for prescaler 1024
-  TCCR1B |= (1 << CS12) | (1 << CS10);
-  // Initialize counter value to 0
-  TCNT1 = 0;
-  // Set timer count for 1-second increments
-  OCR1A = 15624; // = (16 * 10^6) / (1024) - 1
-  // Enable timer compare interrupt
-  TIMSK1 |= (1 << OCIE1A);
+  TCCR1A = 0;                                        // CTC Mode
+  TCCR1B = (1 << WGM12) | (1 << CS12) | (1 << CS10); // Prescaler 1024
+  TCNT1 = 0;                                         // Zähler auf 0
+  OCR1A = 15624;                                     // 1 Sekunde
+  TIMSK1 |= (1 << OCIE1A);                           // Interrupt aktiviere
 
   sei(); // Allow interrupts
 

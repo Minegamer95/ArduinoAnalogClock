@@ -45,6 +45,7 @@ public:
     _maxPosition = maxPos;
     _paused = paused;
     _tickPinTurnOfDelay = 400;
+    _lastTick = 0;
     pinMode(diractionA, OUTPUT);
     pinMode(diractionB, OUTPUT);
   }
@@ -101,6 +102,26 @@ public:
   uLong getTickDuration() const { return _maxTime / _maxPosition; }
 
   uLong getDayLengthSec() const { return _dayLength; }
+
+  uLong getForwardTickDiff() {
+    return (_maxPosition + getTargetPosition() - getDisplayPosition()) %
+           _maxPosition;
+  }
+
+  uLong getBackwardTickDiff() {
+    return (_maxPosition + getDisplayPosition() - getTargetPosition()) %
+           _maxPosition;
+  }
+
+  uLong getForwardTickDiffSec() {
+    return ((getForwardTickDiff() * 1000) *
+            (_minTickDelayInMs + _tickPinTurnOfDelay)) /
+           1000;
+  }
+
+  uLong getBackwardTickDiffSec() {
+    return getBackwardTickDiff() * getTickDuration();
+  }
 
   bool getPaused() const { return _paused; }
 
