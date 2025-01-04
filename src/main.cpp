@@ -1,25 +1,62 @@
 #include <Arduino.h>
-#include "physicalClock.cpp"
+#include "PhysicalClock.h"
+#include "CommandHandler.h"
 
-// put function declarations here:
-int myFunction(int, int);
+void statusCmd(const String& cmd, const String& args);
 
 PhysicalClock clock = PhysicalClock(0, 10, 11);
+CommandHandler commandHandler;
+uLong currentTime = 0;
+uLong lastUpdate = 0;
 
 void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+  // Configure Timer 1 for CTC mode
+  TCCR1A = 0; // Set entire TCCR1A register to 0
+  TCCR1B = 0; // Same for TCCR1B
+  TCCR1B |= (1 << WGM12);
+
+  // Set CS12, CS10 bits for prescaler 1024
+  TCCR1B |= (1 << CS12) | (1 << CS10);
+  // Initialize counter value to 0
+  TCNT1 = 0;
+  // Set timer count for 1-second increments
+  OCR1A = 15624; // = (16 * 10^6) / (1024) - 1
+  // Enable timer compare interrupt
+  TIMSK1 |= (1 << OCIE1A);
+
+  sei(); // Allow interrupts
+
+  // Register Command
+  commandHandler.addCommand("help", [](const String& cmd, const String& arg) {
+    commandHandler.helpCommand(cmd, arg);
+  }, "Displays the list of available commands.");
+  commandHandler.addCommand("status", statusCmd, "Zeigt Status");
+
   Serial.begin(9600);
 }
 
 void loop() {
   clock.update();
-  clock.setTargetTimeSec(millis());
-  Serial.println(clock.getTimeStr(TimeType::Target));
-  Serial.println(clock.getTargetTimeSec());
+  commandHandler.listen();
+
+  if(millis() - lastUpdate > 10000){
+    Serial.println(clock.getTimeStr(TimeType::Target));
+    Serial.println(clock.getTargetTimeSec());
+    lastUpdate = millis();
+  }
 }
 
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+ISR(TIMER1_COMPA_vect){
+  currentTime++;
+  clock.setTargetTimeSec(currentTime * 60);
 }
+
+void statusCmd(const String& cmd, const String& args){
+  CommandHandler::printHeader(cmd);
+  Serial.println("Display Time: " + clock.getTimeStr(TimeType::Display));
+  Serial.println("Display Tick: " + String(clock.getDisplayPosition()));
+  Serial.println("Target Time: " + clock.getTimeStr(TimeType::Target));
+  Serial.println("Target Tick: " + String(clock.getTargetPosition()));
+
+  CommandHandler::printHeader(cmd, true);
+};
