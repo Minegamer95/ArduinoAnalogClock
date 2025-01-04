@@ -1,5 +1,6 @@
 #include "CommandHandler.h"
 #include "PhysicalClock.h"
+#include "StringBuilder.h"
 #include <Arduino.h>
 
 // Commands
@@ -17,16 +18,23 @@ CommandHandler commandHandler;
 uLong currentTime = 0;
 
 // Language Text
-const char *changeFromTxt = "Von ";
-const char *changeToTxt = "Zu ";
-const char *dispTimeTxt = "Display Time: ";
-const char *dispPosTxt = "Display Tick: ";
-const char *targTimeTxt = "Target Time: ";
-const char *targPosTxt = "Target Tick: ";
-const char *arduinoTimeTxt = "Arduino Time: ";
-const char *pauseTxt = "Clock is now: ";
-const char *pauseRunningTxt = "Running";
-const char *pauseStoppedTxt = "Stopped";
+const char *txtChangeFrom = "Von ";
+const char *txtChangeTo = "Zu ";
+const char *txtDispTime = "Anzeige-Zeit: ";
+const char *txtDispPos = "Anzeige-Tick: ";
+const char *txtTargTime = "Ziel-Zeit: ";
+const char *txtTargPos = "Ziel-Tick: ";
+const char *txtArduinoTime = "Arduino Zeit: ";
+const char *txtPause = "Die Uhr ist: ";
+const char *txtRunning = "Aktiv";
+const char *txtStopped = "Angehalten";
+const char *txtTimeDiffForeward = "Zeitdiffernz Vorwärts: ";
+const char *txtTimeDiffBackward = "Zeitdiffernz Rückwärts: ";
+const char *txtTicks = " Ticks";
+const char *txtSeconds = " Sekunden";
+const char *txtTime = " Uhr";
+const char *txtTimeLong = " HH:MM:SS";
+const char *txtListSeperator = ", ";
 
 void setup() {
   TCCR1A = 0;                                        // CTC Mode
@@ -77,79 +85,89 @@ ISR(TIMER1_COMPA_vect) {
 }
 
 void statusCmd(const String &cmd, const String &args) {
-  Serial.println(dispTimeTxt + clock.getTimeStr(TimeType::Display));
-  Serial.println(dispPosTxt + String(clock.getDisplayPosition()));
-  Serial.println(targTimeTxt + clock.getTimeStr(TimeType::Target));
-  Serial.println(targPosTxt + String(clock.getTargetPosition()));
-  Serial.println(arduinoTimeTxt + String(clock.timestampToStr(currentTime)));
+  StringBuilder sb = StringBuilder(true);
+  sb << txtDispTime << clock.getTimeStr(TimeType::Display);
+  sb.println();
 
-  Serial.print(pauseTxt);
-  if (clock.getPaused())
-    Serial.println(pauseStoppedTxt);
-  else
-    Serial.println(pauseRunningTxt);
+  sb << txtDispPos << clock.getDisplayPosition();
+  sb.println();
+
+  sb << txtTargTime << clock.getTimeStr(TimeType::Target);
+  sb.println();
+
+  sb << txtTargPos << clock.getTargetPosition();
+  sb.println();
+
+  sb << txtArduinoTime << clock.timestampToStr(currentTime);
+  sb.println();
+
+  sb << txtPause << (clock.getPaused() ? txtStopped : txtRunning);
+  sb.println();
+
+  sb << txtTimeDiffForeward << clock.getForwardTickDiff() << txtTicks
+     << txtListSeperator << clock.timestampToStr(clock.getForwardTickDiffSec())
+     << txtTimeLong;
+  sb.println();
+
+  sb << txtTimeDiffBackward << clock.getBackwardTickDiff() << txtTicks
+     << txtListSeperator << clock.timestampToStr(clock.getBackwardTickDiffSec())
+     << txtTimeLong;
+  sb.println();
 };
 
 void setDisplayTimeCmd(const String &cmd, const String &args) {
-  Serial.print(changeFromTxt);
-  Serial.print(dispTimeTxt);
-  Serial.println(clock.getTimeStr(TimeType::Display));
+  StringBuilder sb = StringBuilder(true);
+  sb << txtChangeFrom << txtDispTime << clock.getTimeStr(TimeType::Display);
+  sb.println();
 
   clock.setDisplayTimeSec(CommandHandler::extractTime(args));
 
-  Serial.print(changeToTxt);
-  Serial.print(dispTimeTxt);
-  Serial.println(clock.getTimeStr(TimeType::Display));
+  sb << txtChangeTo << txtDispTime << clock.getTimeStr(TimeType::Display);
+  sb.println();
 };
 
 void setTargetTimeCmd(const String &cmd, const String &args) {
-  Serial.print(changeFromTxt);
-  Serial.print(targTimeTxt);
-  Serial.println(clock.getTimeStr(TimeType::Target));
+  StringBuilder sb = StringBuilder(true);
+  sb << txtChangeFrom << txtTargTime << clock.getTimeStr(TimeType::Target);
+  sb.println();
 
   currentTime = CommandHandler::extractTime(args);
   currentTime %= clock.getDayLengthSec();
-
   clock.setTargetTimeSec(currentTime);
 
-  Serial.print(changeToTxt);
-  Serial.print(targTimeTxt);
-  Serial.println(clock.getTimeStr(TimeType::Target));
+  sb << txtChangeTo << txtTargTime << clock.getTimeStr(TimeType::Target);
+  sb.println();
 };
 
 void togglePauseCmd(const String &cmd, const String &args) {
   clock.setPaused(!clock.getPaused());
-  Serial.print(pauseTxt);
-  if (clock.getPaused())
-    Serial.println(pauseStoppedTxt);
-  else
-    Serial.println(pauseRunningTxt);
+  StringBuilder sb = StringBuilder(true);
+  sb << txtPause << (clock.getPaused() ? txtStopped : txtRunning);
+  sb.println();
 };
 
 void tickDisplay(const String &cmd, const String &args) {
-  Serial.print(changeFromTxt);
-  Serial.print(dispPosTxt);
-  Serial.println(clock.getDisplayPosition());
+  StringBuilder sb = StringBuilder(true);
+  sb << txtChangeFrom << txtDispTime << clock.getTimeStr(TimeType::Display);
+  sb.println();
 
   uLong newPos = clock.getDisplayPosition() + CommandHandler::toNumber(args);
   clock.setDisplayPosition(newPos);
 
-  Serial.print(changeToTxt);
-  Serial.print(dispPosTxt);
-  Serial.println(clock.getDisplayPosition());
+  sb << txtChangeTo << txtDispTime << clock.getTimeStr(TimeType::Display);
+  sb.println();
 }
 
 void tickDisplaySec(const String &cmd, const String &args) {
-  Serial.print(changeFromTxt);
-  Serial.print(dispTimeTxt);
-  Serial.println(clock.getTimeStr(TimeType::Display));
+  StringBuilder sb = StringBuilder(true);
+  sb << txtChangeFrom << txtDispTime << clock.getTimeStr(TimeType::Display);
+  sb.println();
 
   clock.setDisplayTimeSec(CommandHandler::extractTime(args) +
                           clock.getDisplayTimeSec());
 
-  Serial.print(changeToTxt);
-  Serial.print(dispTimeTxt);
-  Serial.println(clock.getTimeStr(TimeType::Display));
+  sb << txtChangeTo << txtDispTime << clock.getTimeStr(TimeType::Display);
+  sb.println();
 }
 
 void cmdTemplate(const String &cmd, const String &args) {
