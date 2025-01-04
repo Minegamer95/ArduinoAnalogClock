@@ -14,17 +14,20 @@ enum TimeType{
 class PhysicalClock {
 private:
     /// @brief The amount of Seconds a entiry day has
-    const uLong dayLength = 24UL * 60 * 60;
+    const uLong _dayLength = 24UL * 60 * 60;
 
     uLong _displayPosition;
     uLong _targetPostion;
     uLong _minTickDelayInMs;
+    uLong _tickPinTurnOfDelay;
     uLong _lastTick; 
     uLong _maxPosition;
     /// @brief Die Maximale Zeit die in Sekunden angegeben werden kann, z.B. 24h, oder 12h
-    uLong maxTime = 24UL * 60 * 60;
+    uLong _maxTime = 24UL * 60 * 60;
     /// @brief Die Aktuelle Richtiung die vom Motortreiber genutzt wird um die Uhr ticken zu lassen
     bool direction;
+    /// @brief The Status if the clock is paused or is not
+    bool _paused;
     // Gpio pin für die erste richtung des Motortreibers
     uint8_t diractionA;
     // Gpio pin für die andere richtung des Motortreibers
@@ -32,7 +35,7 @@ private:
 
 public:
     // Konstruktor
-    PhysicalClock(uLong displayPos, uint8_t diractionPinA, uint8_t diractionPinB, bool startDirection = true, uLong minTickDelayMs = 800, uLong maxPos = 720);
+    PhysicalClock(uLong displayPos, uint8_t diractionPinA, uint8_t diractionPinB, bool startDirection = true, uLong minTickDelayMs = 800, uLong maxPos = 720, bool paused = false);
 
     /// @brief Setzt die auf dem Ziffernblatt Angezeigte Zeit über aktuellen die Aktuelle Zeigerposition
     /// @param pos 
@@ -54,6 +57,10 @@ public:
     /// @param maxTimeSec 
     void setMaxTime(uLong maxTimeSec);
 
+    /// @brief Setzt ob die Uhr pausiert sein soll oder nicht
+    /// @param pause 
+    void setPaused(bool pause);
+
     /// @brief Fragt die aktuelle Zeigerposition ab
     /// @return 
     uLong getDisplayPosition() const;
@@ -70,7 +77,13 @@ public:
     /// @return 
     uLong getTickDuration() const;
 
+    uLong getDayLengthSec() const;
+
+    bool getPaused() const;
+
     void update();
+
+    String timestampToStr(uLong timestamp) const;
 
     String getTimeStr(TimeType type) const;
 
