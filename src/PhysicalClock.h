@@ -19,6 +19,7 @@ private:
   uLong _tickPinTurnOfDelay;
   uLong _lastTick;
   uLong _maxPosition;
+  uLong _forwardDiffSecDelay = 10;
   /// @brief Die Maximale Zeit die in Sekunden angegeben werden kann, z.B. 24h,
   /// oder 12h
   uLong _maxTime = 24UL * 60 * 60;
@@ -116,7 +117,8 @@ public:
   uLong getForwardTickDiffSec() {
     // Berechne die Gesamtzeit in Millisekunden
     uLong totalDelayInMs =
-        getForwardTickDiff() * (_minTickDelayInMs + _tickPinTurnOfDelay);
+        getForwardTickDiff() *
+        (_minTickDelayInMs + _tickPinTurnOfDelay + _forwardDiffSecDelay);
     // Teile die Gesamtzeit durch 1000, um die Zeit in Sekunden zu erhalten
     return totalDelayInMs / 1000;
   }
