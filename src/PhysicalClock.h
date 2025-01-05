@@ -1,6 +1,7 @@
 #ifndef PHYSICALCLOCK_H
 #define PHYSICALCLOCK_H
 
+#include "StringBuilder.h"
 #include <Arduino.h>
 #include <avr/io.h>
 
@@ -32,12 +33,13 @@ private:
   uint8_t diractionA;
   // Gpio pin für die andere richtung des Motortreibers
   uint8_t diractionB;
+  uLong _tickCounter;
 
 public:
   // Konstruktor
   PhysicalClock(uLong displayPos, uint8_t diractionPinA, uint8_t diractionPinB,
                 bool startDirection, uLong minTickDelayMs, uLong maxPos,
-                bool paused) {
+                bool paused, uLong _tickPinOnTime) {
     _displayPosition = displayPos;
     diractionA = diractionPinA;
     diractionB = diractionPinB;
@@ -45,8 +47,10 @@ public:
     _minTickDelayInMs = minTickDelayMs;
     _maxPosition = maxPos;
     _paused = paused;
-    _tickPinTurnOfDelay = 400;
+    _tickPinTurnOfDelay = _tickPinOnTime;
     _lastTick = 0;
+    _tickCounter = 0;
+    _targetPostion = 0;
     pinMode(diractionA, OUTPUT);
     pinMode(diractionB, OUTPUT);
   }
@@ -134,14 +138,31 @@ public:
       return;
     else if (getDisplayPosition() == getTargetPosition())
       return;
+    else if (millis() - _lastTick < _minTickDelayInMs)
+      return;
     // Wenn es mehr sinn mach den Zeiger zu lassen wo er ist sollte es auch so
     // sein
     else if (getForwardTickDiffSec() > getBackwardTickDiffSec() ||
              getBackwardTickDiffSec() < 5 * 60)
       return;
-    else if (millis() - _lastTick < _minTickDelayInMs)
-      return;
+    doTick();
+    _lastTick = millis();
+  };
 
+  /// @brief Führt falls nötig einen Tick aus und updatet die Ziel-Zeit oder
+  /// Ziel-Tick
+  /// @param inSec Wenn true wird Ziel-Zeit (Sekunden) gesetzt wenn nicht wird
+  /// Ziel-Tick also die Zeigerposition gesetzt
+  /// @param value Der neue Sollwert
+  void update(bool inSec, uLong value) {
+    if (inSec)
+      setTargetTimeSec(value);
+    else
+      setTargetPosition(value);
+    update();
+  }
+
+  void doTick() {
     if (direction) {
       digitalWrite(diractionA, HIGH);
     } else {
@@ -151,12 +172,15 @@ public:
     digitalWrite(diractionA, LOW);
     digitalWrite(diractionB, LOW);
     direction = !direction;
+    _tickCounter++;
+    StringBuilder sb = StringBuilder(true);
+    sb << "Tickcount: " << _tickCounter;
+    sb.println();
 
     // Internen Zähler der Postion erhöhen, der setter kümmert sich automatisch
     // um die begreznung des Bereiches
     setDisplayPosition(getDisplayPosition() + 1);
-    _lastTick = millis();
-  };
+  }
 
   String timestampToStr(uLong timestamp) const {
     uLong h = timestamp / 60 / 60;     // Stunden berechnen

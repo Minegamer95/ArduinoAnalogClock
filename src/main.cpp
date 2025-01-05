@@ -8,14 +8,22 @@ void statusCmd(const String &cmd, const String &args);
 void setDisplayTimeCmd(const String &cmd, const String &args);
 void setTargetTimeCmd(const String &cmd, const String &args);
 void togglePauseCmd(const String &cmd, const String &args);
+void toggleTimeCmd(const String &cmd, const String &args);
 void tickDisplay(const String &cmd, const String &args);
 void tickDisplaySec(const String &cmd, const String &args);
 
 void cmdTemplate(const String &cmd, const String &args);
 
-PhysicalClock clock = PhysicalClock(0, 10, 11, true, 800, 720, true);
+// Other Functions
+
+PhysicalClock clock =
+    PhysicalClock(0, 10, 11, true, 1500, 720, true, 400); // Echte Uhr
+// PhysicalClock clock = PhysicalClock(0, 10, 11, true, 80, 720, true, 40);
+// Debug Uhr, kurzere Schalt Delays
 CommandHandler commandHandler;
+uLong lastTick = 0;
 uLong currentTime = 0;
+bool pauseTimeUpdate = true;
 
 // Language Text
 const char *txtChangeFrom = "Von ";
@@ -26,6 +34,7 @@ const char *txtTargTime = "Ziel-Zeit: ";
 const char *txtTargPos = "Ziel-Tick: ";
 const char *txtArduinoTime = "Arduino Zeit: ";
 const char *txtPause = "Die Uhr ist: ";
+const char *txtPauseTime = "Die Zeit ist: ";
 const char *txtRunning = "Aktiv";
 const char *txtStopped = "Angehalten";
 const char *txtTimeDiffForeward = "Zeitdiffernz Vorwärts: ";
@@ -51,28 +60,28 @@ void setup() {
       [](const String &cmd, const String &arg) {
         commandHandler.helpCommand(cmd, arg);
       },
-      "Displays the list of available commands.");
+      "Zeigt Verfügbare Befehle");
   commandHandler.addCommand("status", statusCmd, "Zeigt Status");
-  commandHandler.addCommand(
-      "setDispTime", setDisplayTimeCmd,
-      "Setzt die Display Time, setDispTime <hh:mm>/<hh:mm:ss>");
-  commandHandler.addCommand(
-      "setTargTime", setTargetTimeCmd,
-      "Setzt die Target Time, setTargTime <hh:mm>/<hh:mm:ss>");
-  commandHandler.addCommand(
-      "tick", setTargetTimeCmd,
-      "Erhöht die Display Tick um die eingegebene Zahl, tick <int>");
-  commandHandler.addCommand("tickTime", setTargetTimeCmd,
-                            "Erhöht die Display Time um die gegebene Zeit, "
-                            "tickTime <hh:mm>/<hh:mm:ss>");
-  commandHandler.addCommand("toggel", togglePauseCmd,
-                            "Started oder Stop die Uhr");
+  commandHandler.addCommand("setDispTime", setDisplayTimeCmd,
+                            "Setzt die Display Time, setDispTime <hh:mm(:ss)>");
+  commandHandler.addCommand("setTargTime", setTargetTimeCmd,
+                            "Setzt die Target Time, setTargTime <hh:mm(:ss)>");
+  commandHandler.addCommand("tick", tickDisplay,
+                            "Erhöht Display Tick, tick <int>");
+  commandHandler.addCommand("tickTime", tickDisplaySec,
+                            "Erhöht Display Time, "
+                            "tickTime <hh:mm(:ss)>");
+  commandHandler.addCommand("toggel", togglePauseCmd, "Start/Stop der Uhr");
+  commandHandler.addCommand("toggelTime", toggleTimeCmd,
+                            "Start/Stop des Zeitupdates");
 
   Serial.begin(115200);
   Serial.println("Boot complete");
 }
 
 void loop() {
+  if (!pauseTimeUpdate)
+    clock.setTargetTimeSec(currentTime);
   clock.update();
   commandHandler.listen();
   delay(20);
@@ -81,9 +90,9 @@ void loop() {
 ISR(TIMER1_COMPA_vect) {
   currentTime++;
   currentTime %= clock.getDayLengthSec();
-  clock.setTargetTimeSec(currentTime);
 }
 
+// Commands
 void statusCmd(const String &cmd, const String &args) {
   StringBuilder sb = StringBuilder(true);
   sb << txtDispTime << clock.getTimeStr(TimeType::Display);
@@ -102,6 +111,9 @@ void statusCmd(const String &cmd, const String &args) {
   sb.println();
 
   sb << txtPause << (clock.getPaused() ? txtStopped : txtRunning);
+  sb.println();
+
+  sb << txtPauseTime << (pauseTimeUpdate ? txtStopped : txtRunning);
   sb.println();
 
   sb << txtTimeDiffForeward << clock.getForwardTickDiff() << txtTicks
@@ -128,6 +140,7 @@ void setDisplayTimeCmd(const String &cmd, const String &args) {
 
 void setTargetTimeCmd(const String &cmd, const String &args) {
   StringBuilder sb = StringBuilder(true);
+  // clock.getTimeStr(TimeType::Target);
   sb << txtChangeFrom << txtTargTime << clock.getTimeStr(TimeType::Target);
   sb.println();
 
@@ -143,6 +156,13 @@ void togglePauseCmd(const String &cmd, const String &args) {
   clock.setPaused(!clock.getPaused());
   StringBuilder sb = StringBuilder(true);
   sb << txtPause << (clock.getPaused() ? txtStopped : txtRunning);
+  sb.println();
+};
+
+void toggleTimeCmd(const String &cmd, const String &args) {
+  pauseTimeUpdate = !pauseTimeUpdate;
+  StringBuilder sb = StringBuilder(true);
+  sb << txtPauseTime << (pauseTimeUpdate ? txtStopped : txtRunning);
   sb.println();
 };
 
